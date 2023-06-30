@@ -1,0 +1,58 @@
+#include <BluetoothSerial.h>
+
+BluetoothSerial SerialBT;
+
+const int motorPin = 13; // Pino do motor
+const int motorDuration = 20000; // 20 segundos em milissegundos
+
+bool motorDirection = false; // false para girar em um sentido, true para girar no sentido oposto
+bool motorRunning = false; // Indica se o motor está em funcionamento
+unsigned long motorStartTime = 0; // Tempo de início do motor
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(motorPin, OUTPUT);
+
+  SerialBT.begin("bluetoothESP32"); // Nome do dispositivo Bluetooth
+  Serial.println("Bluetooth ESP32 conectado");
+}
+
+void loop() {
+  if (SerialBT.available()) {
+    char receivedChar = SerialBT.read();
+
+    if (receivedChar == '1') {
+      if (!motorRunning) {
+        motorDirection = !motorDirection; // Alterna a direção do motor
+        motorRunning = true;
+        motorStartTime = millis();
+        SerialBT.println("Motor ligado");
+      }
+    } else if (receivedChar == '0') {
+      if (motorRunning) {
+        motorRunning = false;
+        digitalWrite(motorPin, LOW);
+        SerialBT.println("Motor desligado");
+      }
+    }
+  }
+
+  if (motorRunning) {
+    if (millis() - motorStartTime < motorDuration) {
+      digitalWrite(motorPin, HIGH);
+      if (motorDirection) {
+        SerialBT.println("Motor girando no sentido oposto");
+      } else {
+        SerialBT.println("Motor girando");
+      }
+    } else {
+      motorRunning = false;
+      digitalWrite(motorPin, LOW);
+      if (motorDirection) {
+        SerialBT.println("Motor desligado após 20 segundos no sentido oposto");
+      } else {
+        SerialBT.println("Motor desligado após 20 segundos");
+      }
+    }
+  }
+}
